@@ -1,41 +1,145 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Murder Mystery Game</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .game-section { display: none; }
-        #setup-section { display: block; }
-    </style>
-</head>
-<body>
-    <div class="container mt-5">
-        <!-- Setup Section -->
-        <div id="setup-section" class="game-section">
-            <h1>Murder Mystery Game</h1>
-            <div class="mb-3">
-                <label for="playerCount" class="form-label">Number of Players:</label>
-                <select id="playerCount" class="form-select">
-                    <option value="5">5</option>
-                    <option value="6">6</option>
-                    <option value="7" selected>7</option>
-                    <option value="8">8</option>
-                </select>
-            </div>
-            
-            <div id="characterSelection"></div>
-            
-            <button id="startGame" class="btn btn-primary mt-3">Start Game</button>
-        </div>
-        
-        <!-- Game Section -->
-        <div id="game-section" class="game-section">
-            <h2 id="murderer-reveal"></h2>
-            <div id="clues-container"></div>
-            <button id="resetGame" class="btn btn-secondary mt-3">Reset Game</button>
-        </div>
-    </div>
+// Character data - you'll need to expand this with all your characters and clues
+const characters = {
+    "The Agent": {
+        innocentClues: [
+            "Had financial motive but was seen at the bar during the murder",
+            "Recently negotiated a lucrative deal for the victim",
+            "Phone records show calls to publisher at time of death"
+        ],
+        murdererClues: [
+            "Was overheard arguing about commissions",
+            "Had access to victim's schedule",
+            "Fingerprints on the murder weapon",
+            "Recently increased life insurance policy on victim",
+            "Was seen entering victim's room just before murder"
+        ]
+    },
+    "The Secretary": {
+        innocentClues: [
+            "Was typing letters during the time of murder",
+            "Has alibi from multiple witnesses",
+            "No known motive"
+        ],
+        murdererClues: [
+            "Knew victim's exact movements",
+            "Had been passed over for promotion",
+            "Recent suspicious Google searches",
+            "Victim's will was recently changed",
+            "Was last to see victim alive"
+        ]
+    }
+    // Add all your other characters here
+};
 
-    <script src="script.js"></script>
-</body>
-</html>
+document.addEventListener('DOMContentLoaded', function() {
+    const playerCountSelect = document.getElementById('playerCount');
+    const characterSelection = document.getElementById('characterSelection');
+    const startGameBtn = document.getElementById('startGame');
+    const gameSection = document.getElementById('game-section');
+    const setupSection = document.getElementById('setup-section');
+    const murdererReveal = document.getElementById('murderer-reveal');
+    const cluesContainer = document.getElementById('clues-container');
+    const resetGameBtn = document.getElementById('resetGame');
+    
+    // Generate character checkboxes based on player count
+    playerCountSelect.addEventListener('change', function() {
+        generateCharacterSelection(this.value);
+    });
+    
+    // Start game button
+    startGameBtn.addEventListener('click', function() {
+        const selectedCharacters = Array.from(document.querySelectorAll('input[name="character"]:checked'))
+                                    .map(el => el.value);
+        
+        if(selectedCharacters.length < 2) {
+            alert("Please select at least 2 characters");
+            return;
+        }
+        
+        // Select random murderer
+        const murderer = selectedCharacters[Math.floor(Math.random() * selectedCharacters.length)];
+        
+        // Display game section
+        setupSection.style.display = 'none';
+        gameSection.style.display = 'block';
+        
+        // Show murderer
+        murdererReveal.textContent = `The murderer is... ${murderer}!`;
+        
+        // Show clues
+        cluesContainer.innerHTML = '';
+        const cluesList = document.createElement('ol');
+        
+        // Get 5 clues (mix of murderer-specific and general)
+        const murdererClues = characters[murderer].murdererClues;
+        const generalClues = [];
+        
+        // Add clues from other characters
+        selectedCharacters.forEach(char => {
+            if(char !== murderer) {
+                generalClues.push(...characters[char].innocentClues);
+            }
+        });
+        
+        // Shuffle and select 5 clues (preferably 3 murderer, 2 general)
+        const selectedClues = [];
+        
+        // Add 3 murderer clues
+        selectedClues.push(...murdererClues.sort(() => 0.5 - Math.random()).slice(0, 3));
+        
+        // Add 2 general clues
+        selectedClues.push(...generalClues.sort(() => 0.5 - Math.random()).slice(0, 2));
+        
+        // Shuffle the final clues
+        selectedClues.sort(() => 0.5 - Math.random());
+        
+        // Display clues
+        selectedClues.forEach(clue => {
+            const li = document.createElement('li');
+            li.textContent = clue;
+            cluesList.appendChild(li);
+        });
+        
+        cluesContainer.appendChild(cluesList);
+    });
+    
+    // Reset game button
+    resetGameBtn.addEventListener('click', function() {
+        gameSection.style.display = 'none';
+        setupSection.style.display = 'block';
+        generateCharacterSelection(playerCountSelect.value);
+    });
+    
+    // Initial setup
+    generateCharacterSelection(playerCountSelect.value);
+    
+    function generateCharacterSelection(count) {
+        characterSelection.innerHTML = '<h3>Select Characters:</h3>';
+        
+        // Get all character names
+        const characterNames = Object.keys(characters);
+        
+        // Show checkboxes for the first [count] characters
+        for(let i = 0; i < Math.min(count, characterNames.length); i++) {
+            const div = document.createElement('div');
+            div.className = 'form-check';
+            
+            const input = document.createElement('input');
+            input.className = 'form-check-input';
+            input.type = 'checkbox';
+            input.name = 'character';
+            input.value = characterNames[i];
+            input.id = `char-${i}`;
+            input.checked = true;
+            
+            const label = document.createElement('label');
+            label.className = 'form-check-label';
+            label.htmlFor = `char-${i}`;
+            label.textContent = characterNames[i];
+            
+            div.appendChild(input);
+            div.appendChild(label);
+            characterSelection.appendChild(div);
+        }
+    }
+});
